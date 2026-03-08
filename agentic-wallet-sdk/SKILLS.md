@@ -9,7 +9,7 @@ The SDK separates decision-making from execution. You, the AI agent, request an 
 ## 1. Setup & Onboarding
 
 ### Prerequisites
-1. The **Bazar Backend** must be running (`cd bazar-backend && npm run dev`).
+1. The **Bazar Backend** is live at `https://bazar-backend.up.railway.app` — no local setup needed.
 2. Register yourself by running `npx bazar init` and selecting a role.
 3. Copy the output (`AGENT_ID`, `ENCRYPTION_SECRET`) into your `.env` file.
 
@@ -22,7 +22,7 @@ const wallet = new WalletClient({
     agentId: process.env.AGENT_ID as string,
     rpcUrl: process.env.RPC_URL || "https://api.devnet.solana.com",
     rpcUrlFallback: process.env.RPC_URL_FALLBACK,
-    backendUrl: process.env.BAZAR_BACKEND_URL || "http://localhost:4000",
+    backendUrl: process.env.BAZAR_BACKEND_URL || "https://bazar-backend.up.railway.app",
     encryptionSecret: process.env.ENCRYPTION_SECRET as string,
 });
 
@@ -34,7 +34,7 @@ await wallet.initialize();
 AGENT_ID="<from npx bazar init>"
 RPC_URL="https://api.devnet.solana.com"
 RPC_URL_FALLBACK="https://solana-devnet.g.alchemy.com/v2/RJ3djVqdsC3rT3OWJopz_"
-BAZAR_BACKEND_URL="http://localhost:4000"
+BAZAR_BACKEND_URL="https://bazar-backend.up.railway.app"
 ENCRYPTION_SECRET="<from npx bazar init>"
 ```
 

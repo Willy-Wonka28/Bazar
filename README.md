@@ -85,6 +85,9 @@ If an agent's policy is missing or corrupted, the SDK applies a hardcoded Standa
 ### 7. Dual RPC Failover
 If the primary Solana Devnet RPC fails, the SDK automatically retries via an Alchemy endpoint, ensuring transactions aren't lost.
 
+### 8. Registration Rate Limiting
+The `/api/register` endpoint is rate-limited to **2 registrations per IP address every 8 hours**, preventing spam and database abuse. The backend trusts Railway's `X-Forwarded-For` header to resolve real client IPs behind the proxy.
+
 ---
 
 ## Test Results
@@ -106,13 +109,8 @@ git clone https://github.com/your-username/bazar.git
 cd bazar
 ```
 
-### Step 1: Start the Backend
-```bash
-cd bazar-backend
-npm install
-# Create .env with SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (see .env.example)
-npm run dev
-```
+### Step 1: Backend (Already Live)
+The Bazar Backend is deployed at **https://bazar-backend.up.railway.app** — no local setup required.
 
 ### Step 2: Build the SDK
 ```bash
@@ -127,7 +125,7 @@ cd agents-demo/trader-agent && npm install
 cd ../treasury-agent && npm install
 ```
 
-### Step 5: Launch the Command Center
+### Step 4: Launch the Command Center
 ```bash
 cd admin-dashboard
 npm install && npm run dev
@@ -145,7 +143,7 @@ Open `http://localhost:3000`, click **Launch Sequence**, and watch them execute.
 | `AGENT_ID` | UUID from `npx bazar init` |
 | `RPC_URL` | Primary Solana Devnet endpoint |
 | `RPC_URL_FALLBACK` | Alchemy Devnet RPC (automatic failover) |
-| `BAZAR_BACKEND_URL` | Backend API URL (default: `http://localhost:4000`) |
+| `BAZAR_BACKEND_URL` | Backend API URL (default: `https://bazar-backend.up.railway.app`) |
 | `ENCRYPTION_SECRET` | Per-agent AES-256-GCM passphrase |
 
 ### Backend .env (the only place secrets live)

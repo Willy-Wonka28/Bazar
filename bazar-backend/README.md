@@ -21,6 +21,7 @@ In the Bazar architecture, AI agents are treated as **untrusted processes**. The
 | **AES-256-GCM encryption** | Private keys are encrypted with a unique 32-char hex secret per agent |
 | **Server-side only secrets** | The `service_role` key lives only in this backend's `.env` |
 | **Row Level Security** | Supabase RLS blocks all public `SELECT` on the agents table — even if credentials leaked, the database rejects direct queries |
+| **Registration rate limiting** | `POST /api/register` is capped at 2 requests per IP every 8 hours to prevent spam |
 
 ## Running Locally
 

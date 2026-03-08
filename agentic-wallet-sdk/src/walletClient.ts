@@ -11,7 +11,7 @@ export interface WalletClientConfig {
     agentId: string;
     rpcUrl: string; // e.g., https://api.devnet.solana.com
     rpcUrlFallback?: string; // e.g., Alchemy Devnet endpoint
-    backendUrl: string; // Bazar Backend URL (e.g., http://localhost:4000)
+    backendUrl: string; // Bazar Backend URL (e.g., https://bazar-backend.up.railway.app)
     encryptionSecret: string;
 }
 

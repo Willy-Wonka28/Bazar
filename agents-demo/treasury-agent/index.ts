@@ -10,7 +10,7 @@ import 'dotenv/config';
 // writes its credentials to .env, and then executes a payout.
 // On subsequent boots, it reads existing credentials from .env.
 
-const BACKEND_URL = process.env.BAZAR_BACKEND_URL || 'http://localhost:4000';
+const BACKEND_URL = process.env.BAZAR_BACKEND_URL || 'https://bazar-backend.up.railway.app';
 const ENV_PATH = path.resolve(__dirname, '.env');
 
 /**

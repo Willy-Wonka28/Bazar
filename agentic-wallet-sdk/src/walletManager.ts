@@ -13,7 +13,7 @@ export class WalletManager {
     /**
      * Initializes the Wallet Manager.
      * @param masterSecret The agent's unique encryption secret (from npx bazar init).
-     * @param backendUrl The Bazar Backend URL (e.g., http://localhost:4000).
+     * @param backendUrl The Bazar Backend URL (e.g., https://bazar-backend.up.railway.app).
      */
     constructor(masterSecret: string, backendUrl: string) {
         this.keystore = new SecureKeyStore(masterSecret);

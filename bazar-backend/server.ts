@@ -55,10 +55,44 @@ const POLICY_TEMPLATES: Record<string, { name: string; rules: object }> = {
 // Express App
 // ============================================================
 const app = express();
+app.set('trust proxy', true); // Railway runs behind a proxy
 app.use(cors());
 app.use(express.json());
 
 const PORT = process.env.PORT || 4000;
+
+// ============================================================
+// Registration Rate Limiter (2 per IP every 8 hours)
+// ============================================================
+const REGISTER_WINDOW_MS = 8 * 60 * 60 * 1000; // 8 hours
+const REGISTER_MAX_PER_WINDOW = 2;
+const registerAttempts = new Map<string, { count: number; resetAt: number }>();
+
+// Clean up expired entries every hour
+setInterval(() => {
+    const now = Date.now();
+    for (const [ip, entry] of registerAttempts) {
+        if (now >= entry.resetAt) registerAttempts.delete(ip);
+    }
+}, 60 * 60 * 1000);
+
+function isRegistrationRateLimited(ip: string): { limited: boolean; retryAfterSec?: number } {
+    const now = Date.now();
+    const entry = registerAttempts.get(ip);
+
+    if (!entry || now >= entry.resetAt) {
+        registerAttempts.set(ip, { count: 1, resetAt: now + REGISTER_WINDOW_MS });
+        return { limited: false };
+    }
+
+    if (entry.count < REGISTER_MAX_PER_WINDOW) {
+        entry.count++;
+        return { limited: false };
+    }
+
+    const retryAfterSec = Math.ceil((entry.resetAt - now) / 1000);
+    return { limited: true, retryAfterSec };
+}
 
 /**
  * GET /api/policies
@@ -144,6 +178,16 @@ app.get('/api/agent/:id/policy', async (req, res) => {
  */
 app.post('/api/register', async (req, res) => {
     try {
+        // --- Rate limit check (2 registrations per IP / 8 hours) ---
+        const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
+        const rateCheck = isRegistrationRateLimited(clientIp);
+        if (rateCheck.limited) {
+            res.status(429).json({
+                error: `Registration rate limit exceeded. Try again in ${Math.ceil(rateCheck.retryAfterSec! / 3600)} hour(s).`,
+            });
+            return;
+        }
+
         const { name, role } = req.body;
 
         if (!name || !role) {
