@@ -11,7 +11,7 @@ In the Bazar architecture, AI agents are treated as **untrusted processes**. The
 - **Agent Registration** (`POST /api/register`) — Generates a fresh Solana keypair, encrypts the private key with a per-agent AES-256-GCM secret, creates the agent's policy in the database (if it doesn't already exist), and returns the agent's credentials.
 - **Encrypted Key Retrieval** (`GET /api/agent/:id`) — Returns an agent's encrypted private key and wallet address so the SDK can decrypt it in-memory for signing.
 - **Policy Lookup** (`GET /api/agent/:id/policy`) — Returns the policy rules (amount caps, rate limits, allowed programs) assigned to a specific agent. The SDK calls this at boot to know what transactions are permitted.
-- **Policy Listing** (`GET /api/policies`) — Lists all available role templates (e.g. Standard Trader, Treasury Vault) and their rule sets. Used by the CLI during `npx bazar init`.
+- **Policy Listing** (`GET /api/policies`) — Lists all available role templates (e.g. DeFi Trader, Treasury Vault) and their rule sets. Used by the CLI during `npx bazar init`.
 
 ## Security Design
 

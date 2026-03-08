@@ -16,7 +16,7 @@ import * as readline from 'readline';
 import figlet from 'figlet';
 import chalk from 'chalk';
 
-const BACKEND_URL = process.env.BAZAR_BACKEND_URL || 'https://bazar-backend.up.railway.app';
+const BACKEND_URL = process.env.BAZAR_BACKEND_URL || 'http://localhost:4000';
 
 function askQuestion(rl: readline.Interface, question: string): Promise<string> {
     return new Promise((resolve) => {

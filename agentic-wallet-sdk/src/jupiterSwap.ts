@@ -8,7 +8,7 @@ export const DEVNET_MINTS = {
     USDC: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU', // Circle Devnet USDC
 };
 
-export const JUPITER_API = 'https://quote-api.jup.ag/v6';
+export const JUPITER_API = 'https://api.jup.ag/v6';
 
 /**
  * The quote returned by Jupiter for a given swap route.

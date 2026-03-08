@@ -91,7 +91,7 @@ export default function Dashboard() {
               </div>
             </div>
             <p className="text-sm text-gray-400">
-              Evaluates market conditions and autonomously injects Devnet liquidity. Bound by strict volumetric policy constraints.
+              Swaps SOL → USDC on Jupiter v6 DEX. Policy engine validates all program IDs before signing.
             </p>
             <button
               onClick={() => runAgent('trader-agent')}
@@ -114,7 +114,7 @@ export default function Dashboard() {
               </div>
             </div>
             <p className="text-sm text-gray-400">
-              Secured corporate vault processing strictly allowed micro-payouts. Blocks high-volume unauthorized drains.
+              Secured corporate vault processing strictly allowed micro-payouts.
             </p>
             <button
               onClick={() => runAgent('treasury-agent')}

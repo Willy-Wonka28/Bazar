@@ -15,7 +15,7 @@ import 'dotenv/config';
 //   Odd runs   → USDC → SOL   (all USDC balance)
 // On first boot we always go SOL → USDC to establish a USDC balance.
 
-const BACKEND_URL = process.env.BAZAR_BACKEND_URL || 'https://bazar-backend.up.railway.app';
+const BACKEND_URL = process.env.BAZAR_BACKEND_URL || 'http://localhost:4000';
 const ENV_PATH = path.resolve(__dirname, '.env');
 
 // 0.01 SOL in lamports

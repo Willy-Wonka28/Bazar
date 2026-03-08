@@ -22,7 +22,7 @@ const wallet = new WalletClient({
     agentId: process.env.AGENT_ID as string,
     rpcUrl: process.env.RPC_URL || "https://api.devnet.solana.com",
     rpcUrlFallback: process.env.RPC_URL_FALLBACK,
-    backendUrl: process.env.BAZAR_BACKEND_URL || "https://bazar-backend.up.railway.app",
+    backendUrl: process.env.BAZAR_BACKEND_URL || "http://localhost:4000",
     encryptionSecret: process.env.ENCRYPTION_SECRET as string,
 });
 
