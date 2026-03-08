@@ -1,14 +1,14 @@
 import { PublicKey, VersionedTransaction } from '@solana/web3.js';
 
 // ============================================================
-// Token mint addresses (Devnet)
+// Token mint addresses (Mainnet) — Jupiter API is mainnet-only
 // ============================================================
 export const DEVNET_MINTS = {
-    SOL:  'So11111111111111111111111111111111111111112',  // Wrapped SOL
-    USDC: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU', // Circle Devnet USDC
+    SOL:  'So11111111111111111111111111111111111111112',  // Wrapped SOL (same on all networks)
+    USDC: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', // Circle USDC (mainnet)
 };
 
-export const JUPITER_API = 'https://api.jup.ag/v6';
+export const JUPITER_API = 'https://lite-api.jup.ag/swap/v1';
 
 /**
  * The quote returned by Jupiter for a given swap route.

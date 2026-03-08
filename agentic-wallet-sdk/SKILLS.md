@@ -87,11 +87,13 @@ const signature = await wallet.executeTransaction([myCustomIx]);
 
 ## 4. executeJupiterSwap
 
-Executes a token swap via the **Jupiter v6 Aggregator** on Devnet. Jupiter finds the best route across all available liquidity pools and returns an optimized `VersionedTransaction`.
+Executes a token swap via the **Jupiter v6 Aggregator** on **Mainnet**. Jupiter finds the best route across all available liquidity pools and returns an optimized `VersionedTransaction`.
+
+> **Note:** Jupiter's aggregator API (`lite-api.jup.ag`) is mainnet-only — it has no devnet routing infrastructure. Agents using this skill must configure `RPC_URL` to a mainnet endpoint. The full security flow (program ID extraction, policy validation, in-memory signing) works identically on mainnet.
 
 The SDK:
-1. Fetches a quote from `https://quote-api.jup.ag/v6/quote`.
-2. Retrieves the swap transaction from `https://quote-api.jup.ag/v6/swap`.
+1. Fetches a quote from `https://lite-api.jup.ag/swap/v1/quote`.
+2. Retrieves the swap transaction from `https://lite-api.jup.ag/swap/v1/swap`.
 3. Extracts every program ID from the transaction and validates them against your `allowed_programs` policy.
 4. Signs and broadcasts the transaction with Alchemy RPC fallback.
 
@@ -106,17 +108,17 @@ import { WalletClient, DEVNET_MINTS } from 'agentic-wallet-sdk';
 
 const signature = await wallet.executeJupiterSwap(
     DEVNET_MINTS.SOL,   // So11111111111111111111111111111111111111112
-    DEVNET_MINTS.USDC,  // 4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU
+    DEVNET_MINTS.USDC,  // EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v
     10_000_000          // 0.01 SOL in lamports
 );
 console.log("Swap confirmed:", signature);
 ```
 
-### Available Devnet Mints (`DEVNET_MINTS`)
+### Available Mints (`DEVNET_MINTS`)
 | Constant | Mint Address |
 |---|---|
 | `DEVNET_MINTS.SOL` | `So11111111111111111111111111111111111111112` |
-| `DEVNET_MINTS.USDC` | `4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU` |
+| `DEVNET_MINTS.USDC` | `EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v` |
 
 ### DeFi Trader Policy — Required Whitelisted Programs
 | Program | Address |

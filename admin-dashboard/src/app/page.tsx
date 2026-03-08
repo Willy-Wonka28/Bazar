@@ -91,7 +91,7 @@ export default function Dashboard() {
               </div>
             </div>
             <p className="text-sm text-gray-400">
-              Swaps SOL → USDC on Jupiter v6 DEX. Policy engine validates all program IDs before signing.
+              Swaps SOL → USDC on Jupiter v6 DEX. Policy engine validates all program IDs before signing. Works on <b>Mainnet</b>
             </p>
             <button
               onClick={() => runAgent('trader-agent')}
@@ -114,7 +114,7 @@ export default function Dashboard() {
               </div>
             </div>
             <p className="text-sm text-gray-400">
-              Secured corporate vault processing strictly allowed micro-payouts.
+              Secured corporate vault processing strictly allowed micro-payouts. Works on <b>Devnet</b>
             </p>
             <button
               onClick={() => runAgent('treasury-agent')}
