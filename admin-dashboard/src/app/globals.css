@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bazar-gold: #D4AF37;
+  --font-orbitron: var(--font-orbitron);
+  --font-mono: var(--font-mono);
+}
+
+/* Strict Monochromatic Base */
+:root {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --border-subtle: #333333;
+  --panel-bg: #111111;
+  --panel-border: #222222;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --background: #0a0a0a;
+    /* Forcing dark mode for the techy/Terminal look */
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom Scrollbar for the Terminal feeling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-subtle);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}

@@ -1,0 +1,26 @@
+# Global Monorepo GitIgnore
+# These rules will recursively apply to ALL subdirectories (SDK, Agents, Dashboard)
+
+# Dependencies
+node_modules/
+
+# Environment Variables (CRITICAL SECURITY)
+.env
+.env.*
+*.env
+!.env.example
+
+# Build outputs
+dist/
+build/
+.next/
+
+# IDE & OS Files
+.DS_Store
+.vscode/
+
+# Logs & Local Databases
+*.log
+*.sqlite
+*.sqlite3
+.keystore/
