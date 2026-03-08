@@ -34,11 +34,16 @@ function encryptPrivateKey(secret: string, plaintext: string): string {
 // ============================================================
 const POLICY_TEMPLATES: Record<string, { name: string; rules: object }> = {
     trader: {
-        name: 'Standard Trader',
+        name: 'DeFi Trader',
         rules: {
             max_tx_amount: 1.5,
             max_tx_per_minute: 5,
-            allowed_programs: ['11111111111111111111111111111111'],
+            allowed_programs: [
+                '11111111111111111111111111111111',               // System Program
+                'JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4',  // Jupiter v6 Aggregator
+                'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',  // SPL Token Program
+                'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJe1bRS', // Associated Token Account Program
+            ],
         },
     },
     treasury: {
@@ -201,7 +206,9 @@ app.post('/api/register', async (req, res) => {
             return;
         }
 
-        // 1. Find or create the policy
+        // 1. Find-or-update the policy
+        // Always sync rules from POLICY_TEMPLATES to Supabase so that
+        // changes to allowed_programs or limits propagate automatically.
         let policyId: string;
         const { data: existingPolicy } = await supabase
             .from('policies')
@@ -210,8 +217,19 @@ app.post('/api/register', async (req, res) => {
             .single();
 
         if (existingPolicy) {
+            // Policy exists — update its rules to match the current template
+            const { error: updateErr } = await supabase
+                .from('policies')
+                .update({ rules: template.rules })
+                .eq('id', existingPolicy.id);
+
+            if (updateErr) {
+                res.status(500).json({ error: `Failed to sync policy rules: ${updateErr.message}` });
+                return;
+            }
             policyId = existingPolicy.id;
         } else {
+            // Policy doesn't exist yet — create it
             const { data: newPolicy, error: policyErr } = await supabase
                 .from('policies')
                 .insert({ name: template.name, rules: template.rules })

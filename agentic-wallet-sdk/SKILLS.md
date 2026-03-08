@@ -85,7 +85,50 @@ const signature = await wallet.executeTransaction([myCustomIx]);
 
 ---
 
-## 4. getWalletAddress
+## 4. executeJupiterSwap
+
+Executes a token swap via the **Jupiter v6 Aggregator** on Devnet. Jupiter finds the best route across all available liquidity pools and returns an optimized `VersionedTransaction`.
+
+The SDK:
+1. Fetches a quote from `https://quote-api.jup.ag/v6/quote`.
+2. Retrieves the swap transaction from `https://quote-api.jup.ag/v6/swap`.
+3. Extracts every program ID from the transaction and validates them against your `allowed_programs` policy.
+4. Signs and broadcasts the transaction with Alchemy RPC fallback.
+
+To use this skill, your agent must be registered with the `trader` role (`DeFi Trader` policy), which whitelists Jupiter's program ID.
+
+### Signature
+`await wallet.executeJupiterSwap(inputMint: string, outputMint: string, amountLamports: number, slippageBps?: number): Promise<string>`
+
+### Example — Swap 0.01 SOL → USDC
+```typescript
+import { WalletClient, DEVNET_MINTS } from 'agentic-wallet-sdk';
+
+const signature = await wallet.executeJupiterSwap(
+    DEVNET_MINTS.SOL,   // So11111111111111111111111111111111111111112
+    DEVNET_MINTS.USDC,  // 4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU
+    10_000_000          // 0.01 SOL in lamports
+);
+console.log("Swap confirmed:", signature);
+```
+
+### Available Devnet Mints (`DEVNET_MINTS`)
+| Constant | Mint Address |
+|---|---|
+| `DEVNET_MINTS.SOL` | `So11111111111111111111111111111111111111112` |
+| `DEVNET_MINTS.USDC` | `4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU` |
+
+### DeFi Trader Policy — Required Whitelisted Programs
+| Program | Address |
+|---|---|
+| System Program | `11111111111111111111111111111111` |
+| Jupiter v6 Aggregator | `JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4` |
+| SPL Token Program | `TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA` |
+| Associated Token Account | `ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJe1bRS` |
+
+---
+
+## 5. getWalletAddress
 
 Agents do not hold their raw private keys. If you need your public address for formatting an instruction:
 
@@ -101,3 +144,4 @@ console.log("My Wallet is:", myAddress.toBase58());
 - Your private key is encrypted with your unique `ENCRYPTION_SECRET` and stored in Supabase. The raw key never persists — it only exists in memory during signing.
 - If no policy is found for your agent, the SDK applies a restrictive **Default Policy** (Standard Trader policy (1.5 SOL, 5 tx/min, System Program only)).
 - If the primary RPC fails, the SDK automatically retries via the Alchemy fallback endpoint.
+- For Jupiter swaps, program IDs are extracted directly from the `VersionedTransaction` returned by Jupiter and validated against `allowed_programs` — the policy check cannot be bypassed.

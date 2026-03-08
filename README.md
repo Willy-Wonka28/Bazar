@@ -16,6 +16,7 @@ A zero-trust security layer for autonomous AI agents on the Solana blockchain. T
 - Decrypts the agent's private key in-memory for signing only — it is never persisted to disk or logs.
 - Broadcasts transactions to Solana Devnet with automatic Alchemy RPC failover.
 - Includes an interactive CLI (`npx bazar init`) for zero-friction agent onboarding.
+- **Integrates with Jupiter v6 DEX** — agents can execute real on-chain swaps, with Jupiter's program ID enforced by the policy engine.
 
 ---
 
@@ -30,8 +31,8 @@ bazar/
 ├── agentic-wallet-sdk/    Core security runtime (npm package)
 ├── bazar-backend/         Secure middleware
 ├── agents-demo/           Demo AI agent scripts
-│   ├── trader-agent/
-│   └── treasury-agent/
+│   ├── trader-agent/      Jupiter DEX swap agent (SOL → USDC)
+│   └── treasury-agent/    Secured vault payout agent
 └── admin-dashboard/       Next.js Command Center
 ```
 
@@ -42,23 +43,48 @@ A lightweight Express server that is the **only** component with database write 
 - `GET /api/agent/:id` — returns an agent's encrypted key (only their own).
 - `GET /api/agent/:id/policy` — returns an agent's policy rules.
 - `GET /api/policies` — lists available role templates.
+- **Policy sync**: On every registration, the backend upserts policy rules from `POLICY_TEMPLATES` — changes to program whitelists or limits propagate automatically without manual database edits.
 
 ### agentic-wallet-sdk
 - **Policy Engine**: Validates intents using Zod. Unregistered agents get a restrictive default policy (Standard Trader limits (1.5 SOL, 5 tx/min), System Program only).
 - **Wallet Manager**: Fetches encrypted keys from the backend, decrypts in memory, signs, and erases. Never touches Supabase directly.
 - **Execution Engine**: Broadcasts to Devnet with automatic Alchemy RPC fallback.
+- **Jupiter Swap Module** (`jupiterSwap.ts`): Fetches quotes and swap transactions from the Jupiter v6 Aggregator API. Program IDs in the returned `VersionedTransaction` are extracted and validated against the agent's policy before signing.
 - **Interactive CLI** (`npx bazar init`): Agents self-register by choosing a role. Everything is routed through the backend.
 
 ### agents-demo
-- **trader-agent**: Simulates a bot injecting liquidity by sending **0.25 SOL to the Treasury vault**
-- **treasury-agent**: Simulates a secured vault paying out **0.1 SOL to the Trader wallet**
-
-The two agents form a closed-loop economy: SOL flows from Trader → Treasury (liquidity) and Treasury → Trader (payouts), demonstrating how policies constrain each direction independently.
+- **trader-agent**: Uses the Jupiter v6 API to swap **0.01 SOL → USDC** on Devnet. The agent fetches a quote, validates all program IDs in the returned transaction against its `DeFi Trader` policy, signs, and broadcasts. This is a real DeFi interaction with a live protocol.
+- **treasury-agent**: Simulates a secured vault paying out **0.1 SOL to the Trader wallet**.
 
 Both agents **self-register on first boot**: if `AGENT_ID` is empty in `.env`, the agent calls `POST /api/register`, receives its credentials, writes them to `.env`, and proceeds — fully autonomous, zero human intervention.
 
 ### admin-dashboard
 A monochromatic Next.js Command Center. Click "Launch Sequence" to spawn agent processes and watch the SDK validate or reject intents in real-time via Server-Sent Events.
+
+---
+
+## Jupiter Integration
+
+The Trader Agent performs a real swap on the Jupiter v6 Aggregator on Devnet.
+
+| Detail | Value |
+|---|---|
+| Jupiter API | `https://quote-api.jup.ag/v6` |
+| Input Token | Wrapped SOL — `So11111111111111111111111111111111111111112` |
+| Output Token | Devnet USDC — `4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU` |
+| Swap Amount | 0.01 SOL per run |
+| Slippage | 0.5% (50 bps, configurable) |
+
+**How the policy enforces it:**
+The `DeFi Trader` policy's `allowed_programs` whitelist includes Jupiter's program ID. When the trader agent calls `executeJupiterSwap()`, the SDK extracts every program ID referenced in Jupiter's returned `VersionedTransaction` and runs them through `PolicyEngine.validateInstructions()`. If any program is not whitelisted, the transaction is rejected before it is ever signed.
+
+```
+DeFi Trader — allowed_programs:
+  11111111111111111111111111111111               → System Program
+  JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4  → Jupiter v6 Aggregator
+  TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA  → SPL Token Program
+  ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJe1bRS → Associated Token Account Program
+```
 
 ---
 
@@ -87,6 +113,9 @@ If the primary Solana Devnet RPC fails, the SDK automatically retries via an Alc
 
 ### 8. Registration Rate Limiting
 The `/api/register` endpoint is rate-limited to **2 registrations per IP address every 8 hours**, preventing spam and database abuse. The backend trusts Railway's `X-Forwarded-For` header to resolve real client IPs behind the proxy.
+
+### 9. Automatic Policy Sync
+On every agent registration, the backend upserts the policy rules from the hardcoded `POLICY_TEMPLATES` source of truth. Stale database entries (e.g., missing Jupiter's program ID) are self-healed without manual intervention.
 
 ---
 
@@ -125,13 +154,19 @@ cd agents-demo/trader-agent && npm install
 cd ../treasury-agent && npm install
 ```
 
-### Step 4: Launch the Command Center
+### Step 4: Fund the Trader Wallet
+The Trader Agent needs SOL to pay for the Jupiter swap. On first boot it will print its wallet address. Fund it:
+```bash
+solana airdrop 2 <TRADER_WALLET_ADDRESS> --url devnet
+```
+
+### Step 5: Launch the Command Center
 ```bash
 cd admin-dashboard
 npm install && npm run dev
 ```
 
-Open `http://localhost:3000`, click **Launch Sequence**, and watch them execute.
+Open `http://localhost:3000`, click **Launch Sequence** on the Trader Agent tile, and watch it fetch a Jupiter quote, validate the policy, and broadcast a real on-chain swap.
 
 ---
 
@@ -152,3 +187,22 @@ Open `http://localhost:3000`, click **Launch Sequence**, and watch them execute.
 | `SUPABASE_URL` | Central Supabase project URL |
 | `SUPABASE_SERVICE_ROLE_KEY` | Full-access admin key (server-side only) |
 | `PORT` | Server port (default: 4000) |
+
+---
+
+## Bounty Requirements Checklist
+
+| Requirement | Status |
+|---|---|
+| Wallet created programmatically (`Keypair.generate()` at registration, no human input) | ✅ |
+| Transactions signed automatically (in-memory keypair, zero manual steps) | ✅ |
+| Holds SOL and SPL tokens (USDC received post-swap lives in the agent's ATA) | ✅ |
+| Interacts with a real test protocol (Jupiter v6 DEX swap on Devnet) | ✅ |
+| Open-source with clear README and setup instructions | ✅ |
+| Working prototype on Devnet | ✅ |
+| `SKILLS.md` file included for agents to read | ✅ |
+| Secure key management (AES-256-GCM per-agent encryption, in-memory only) | ✅ |
+| Automated transaction signing without manual input | ✅ |
+| AI agent decision simulation (trade logic lives entirely in agent scripts) | ✅ |
+| Clear separation of agent logic vs. wallet operations | ✅ |
+| Multiple independent agents supported (Trader + Treasury, fully isolated) | ✅ |

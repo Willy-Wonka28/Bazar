@@ -25,3 +25,4 @@ export * from './agentRegistry';
 export * from './transactionBuilder';
 export * from './observability';
 export * from './walletClient';
+export * from './jupiterSwap';

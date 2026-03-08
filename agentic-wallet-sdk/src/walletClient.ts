@@ -3,6 +3,13 @@ import { PolicyEngine, DEFAULT_POLICY, AgentPolicy } from './policyEngine';
 import { TransactionBuilder } from './transactionBuilder';
 import { WalletManager } from './walletManager';
 import { Observability } from './observability';
+import {
+    getJupiterQuote,
+    getJupiterSwapTransaction,
+    extractProgramIds,
+    JupiterQuote,
+    DEVNET_MINTS,
+} from './jupiterSwap';
 
 /**
  * Configuration needed to instantiate the WalletClient.
@@ -162,6 +169,84 @@ export class WalletClient {
             return await this.executeTransaction([ix]);
         } catch (error: any) {
             Observability.logSecurityEvent(this.config.agentId, 'SOL_TRANSFER_FAILED', error.message);
+            throw error;
+        }
+    }
+
+    /**
+     * Executes a Jupiter DEX swap on Devnet.
+     * Fetches a quote, validates all program IDs in the returned transaction
+     * against the agent's policy, signs, and broadcasts.
+     *
+     * @param inputMint  Input token mint (use DEVNET_MINTS.SOL / DEVNET_MINTS.USDC).
+     * @param outputMint Output token mint.
+     * @param amountLamports Amount in the smallest unit of the input token.
+     * @param slippageBps Slippage tolerance in basis points (default: 50 = 0.5%).
+     * @returns The confirmed transaction signature.
+     */
+    public async executeJupiterSwap(
+        inputMint: string,
+        outputMint: string,
+        amountLamports: number,
+        slippageBps = 50
+    ): Promise<string> {
+        try {
+            // 1. Resolve the agent's policy
+            const policy = await this.resolvePolicy();
+
+            // 2. Get Jupiter quote
+            Observability.logAction(this.config.agentId, 'JUPITER_QUOTE_REQUEST', {
+                inputMint,
+                outputMint,
+                amountLamports,
+            });
+
+            const quote: JupiterQuote = await getJupiterQuote(inputMint, outputMint, amountLamports, slippageBps);
+
+            Observability.logAction(this.config.agentId, 'JUPITER_QUOTE_RECEIVED', {
+                inAmount: quote.inAmount,
+                outAmount: quote.outAmount,
+                priceImpactPct: quote.priceImpactPct,
+                routeSteps: quote.routePlan.length,
+            });
+
+            // 3. Load the decrypted wallet keypair
+            const signerKeypair = await this.walletManager.loadDecryptedWallet(this.config.agentId);
+
+            // 4. Fetch the swap VersionedTransaction from Jupiter
+            const swapTx = await getJupiterSwapTransaction(quote, signerKeypair.publicKey);
+
+            // 5. Policy check — extract all program IDs from the transaction and validate
+            const programIds = extractProgramIds(swapTx);
+            Observability.logAction(this.config.agentId, 'JUPITER_POLICY_CHECK', { programIds });
+
+            const mockInstructions = programIds.map(id => ({
+                programId: new PublicKey(id),
+                keys: [],
+                data: Buffer.alloc(0),
+            }));
+            this.policyEngine.validateInstructions(mockInstructions, policy);
+
+            // 6. Sign the VersionedTransaction
+            const latestBlockhash = await this.connection.getLatestBlockhash('confirmed');
+            swapTx.message.recentBlockhash = latestBlockhash.blockhash;
+            swapTx.sign([signerKeypair]);
+
+            // 7. Broadcast with Alchemy fallback
+            const serialized = Buffer.from(swapTx.serialize());
+            const signature = await this.broadcastWithFallback(serialized, latestBlockhash);
+
+            Observability.logAction(this.config.agentId, 'JUPITER_SWAP_SUCCESS', {
+                signature,
+                inputMint,
+                outputMint,
+                amountLamports,
+            });
+
+            return signature;
+
+        } catch (error: any) {
+            Observability.logSecurityEvent(this.config.agentId, 'JUPITER_SWAP_FAILED', error.message);
             throw error;
         }
     }
