@@ -168,6 +168,19 @@ app.get('/api/agent/:id/policy', async (req, res) => {
             return;
         }
 
+        // Always serve fresh rules from POLICY_TEMPLATES — Supabase can lag behind
+        // when the template is updated without a new registration triggering a sync.
+        const freshTemplate = Object.values(POLICY_TEMPLATES).find(t => t.name === policy.name);
+        if (freshTemplate) {
+            await supabase
+                .from('policies')
+                .update({ rules: freshTemplate.rules })
+                .eq('id', agent.policy_id);
+
+            res.json({ name: policy.name, rules: freshTemplate.rules });
+            return;
+        }
+
         res.json(policy);
     } catch (err: any) {
         res.status(500).json({ error: err.message });
