@@ -82,7 +82,7 @@ async function main() {
         // Simulates a weekly payout by sending SOL to the Trader Agent's wallet
         console.log("Treasury Decision: Approving standard weekly worker payout of 0.1 SOL.");
 
-        const traderWallet = "FHTVGGMau4PpjhQf3xreTvNyXt8yFLNzcKzAxMim27qw";
+        const traderWallet = "AAAkrBcQQbpFdy7nDBzx6GpSKarHPTn8ddqhMzGVtiCT";
 
         console.log(`Processing payout to ${traderWallet}...`);
         const signature = await wallet.transferSol(traderWallet, 0.1);

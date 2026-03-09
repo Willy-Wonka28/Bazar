@@ -129,7 +129,9 @@ This is the core DeFi interaction. The agent calls `executeJupiterSwap()` which:
 
 This is a real, live on-chain swap — not a simulation. The output USDC lands in the agent's wallet and is verifiable on Solana Explorer.
 
-> **Note on Mainnet:** Jupiter's aggregator (`lite-api.jup.ag`) only routes against mainnet liquidity pools. There is no devnet version of Jupiter routing infrastructure. The Trader Agent is intentionally wired to mainnet so the full DeFi flow works end-to-end. The security properties are network-agnostic.
+> **Mainnet Proof:** The Trader Agent has been tested live on Solana Mainnet. Verified swap transaction: [`5xP1uDoVeG8sf1edRJLzVFpufG4AzvTaL8ajYykPPd1BRYKLoiDTADVVPB8sHdXmjjsfvMMkCesE4vBVXCQGUThC`](https://explorer.solana.com/tx/5xP1uDoVeG8sf1edRJLzVFpufG4AzvTaL8ajYykPPd1BRYKLoiDTADVVPB8sHdXmjjsfvMMkCesE4vBVXCQGUThC)
+
+> **Note on Mainnet:** Jupiter's aggregator (`lite-api.jup.ag`) only routes against mainnet liquidity pools. There is no devnet deployment of Jupiter routing infrastructure. The Trader Agent is intentionally wired to mainnet so the full DeFi flow works end-to-end. The security properties are network-agnostic.
 
 ---
 
