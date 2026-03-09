@@ -49,6 +49,7 @@ async function ensureRegistered(): Promise<{ agentId: string; encryptionSecret: 
     let envContent = fs.readFileSync(ENV_PATH, 'utf-8');
     envContent = envContent.replace(/^AGENT_ID=.*$/m, `AGENT_ID="${data.agentId}"`);
     envContent = envContent.replace(/^ENCRYPTION_SECRET=.*$/m, `ENCRYPTION_SECRET="${data.encryptionSecret}"`);
+    envContent = envContent.replace(/^WALLET_ADDRESS=.*$/m, `WALLET_ADDRESS="${data.walletAddress}"`);
     fs.writeFileSync(ENV_PATH, envContent, 'utf-8');
 
     console.log(`[AUTO-REGISTER] Credentials saved to .env\n`);
@@ -77,6 +78,13 @@ async function main() {
         console.log(`Wallet loaded.`);
         console.log(`Public Address: ${address.toBase58()}\n`);
 
+        // Persist wallet address to .env so the owner can top up without digging through logs
+        if (!process.env.WALLET_ADDRESS) {
+            let envContent = fs.readFileSync(ENV_PATH, 'utf-8');
+            envContent = envContent.replace(/^WALLET_ADDRESS=.*$/m, `WALLET_ADDRESS="${address.toBase58()}"`);
+            fs.writeFileSync(ENV_PATH, envContent, 'utf-8');
+        }
+
         // ----------------------------------------------------------
         // AI DECISION: Swap SOL → USDC via Jupiter on Devnet
         // ----------------------------------------------------------
@@ -99,18 +107,62 @@ async function main() {
         console.log('='.repeat(55) + '\n');
 
     } catch (error: any) {
-        console.error('\n' + '='.repeat(55));
+        const walletAddr = process.env.WALLET_ADDRESS || (await wallet.getWalletAddress().catch(() => null))?.toBase58() || '<wallet address>';
+
+        console.error('\n' + '='.repeat(60));
         console.error('  AGENT EXECUTION HALTED');
-        console.error('='.repeat(55));
-        console.error(`  Reason: ${error.message}`);
+        console.error('='.repeat(60));
+        console.error(`  Reason: ${error.message}\n`);
+
         if (error.message.includes('Policy Violation')) {
-            console.log('  The Security Runtime successfully blocked an unauthorized action.');
+            console.error('  >> The Security Runtime blocked an unauthorized action.');
+            console.error('     This is expected behaviour — the policy gate is working correctly.');
+
+        } else if (
+            error.message.toLowerCase().includes('insufficient') ||
+            error.message.toLowerCase().includes('balance') ||
+            error.message.toLowerCase().includes('lamport') ||
+            error.message.toLowerCase().includes('not enough')
+        ) {
+            console.error('  >> Looks like your Trader Agent is running low on funds.');
+            console.error(`     Wallet: ${walletAddr}`);
+            console.error('     This agent runs on Mainnet — it needs real SOL.');
+            console.error('     Are you sure your Trader Agent has at least 0.02 SOL on Mainnet?');
+            console.error('     Send SOL to the wallet address above and try again.');
+
+        } else if (
+            error.message.toLowerCase().includes('blockhash') ||
+            error.message.toLowerCase().includes('timeout') ||
+            error.message.toLowerCase().includes('429') ||
+            error.message.toLowerCase().includes('rate limit')
+        ) {
+            console.error('  >> The RPC endpoint returned an error.');
+            console.error('     Both the primary and Alchemy fallback RPCs were tried.');
+            console.error('     Wait a few seconds and re-run the agent.');
+            console.error('     If the issue persists, check your RPC_URL in .env.');
+
+        } else if (
+            error.message.toLowerCase().includes('fetch') ||
+            error.message.toLowerCase().includes('econnrefused') ||
+            error.message.toLowerCase().includes('network')
+        ) {
+            console.error('  >> Could not reach the Bazar Backend or Jupiter API.');
+            console.error('     Check that BAZAR_BACKEND_URL is correct in your .env');
+            console.error('     and that you have an active internet connection.');
+
+        } else if (error.message.toLowerCase().includes('registration failed')) {
+            console.error('  >> Agent registration with the Bazar Backend failed.');
+            console.error('     Check that BAZAR_BACKEND_URL is reachable:');
+            console.error(`     ${process.env.BAZAR_BACKEND_URL || 'https://bazar-backend.up.railway.app'}`);
+
+        } else {
+            console.error('  >> Something unexpected went wrong.');
+            console.error(`     Wallet: ${walletAddr}`);
+            console.error('     Are you sure your Trader Agent has at least 0.02 SOL on Mainnet?');
+            console.error('     Double-check your .env config and try again.');
         }
-        if (error.message.includes('insufficient') || error.message.includes('balance')) {
-            console.log('  Tip: Fund your wallet first:');
-            console.log(`  solana airdrop 2 ${(await wallet.getWalletAddress().catch(() => null))?.toBase58() ?? '<address>'} --url devnet`);
-        }
-        console.error('='.repeat(55) + '\n');
+
+        console.error('\n' + '='.repeat(60) + '\n');
     }
 }
 

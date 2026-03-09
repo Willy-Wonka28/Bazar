@@ -43,6 +43,7 @@ const POLICY_TEMPLATES: Record<string, { name: string; rules: object }> = {
                 'JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4',  // Jupiter v6 Aggregator
                 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',  // SPL Token Program
                 'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJe1bRS', // Associated Token Account Program
+                'ComputeBudget111111111111111111111111111111',    // Compute Budget Program (Jupiter priority fees)
             ],
         },
     },
