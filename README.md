@@ -1,7 +1,5 @@
 # Bazar — Agentic Wallet Runtime
 
-> **The Treasury Agent runs on Solana Devnet. The Trader Agent runs on Solana Mainnet** (Jupiter's aggregator API has no devnet equivalent — [see why](#jupiter-integration)).
-
 Bazar is a zero-trust security layer for autonomous AI agents on Solana. The core idea: an AI agent should be able to decide *what* to do on-chain, but never have unilateral authority to *actually do it*. Every transaction intent passes through an immutable policy engine before a single byte is signed.
 
 Two agents ship with the repo — a **Trader** that swaps SOL → USDC on Jupiter v6 Mainnet, and a **Treasury Vault** that pays out controlled micro-amounts on Devnet. Both self-register on first boot, generate their own wallets, and operate fully autonomously.
@@ -297,6 +295,148 @@ If an agent's policy is missing or corrupted, the SDK applies a hardcoded `DEFAU
 
 ### 9. Automatic Policy Sync
 `server.ts` lines 219–230: on every registration, the backend upserts policy rules from the hardcoded `POLICY_TEMPLATES`. Stale entries in Supabase get overwritten — the code is always the source of truth.
+
+---
+
+## Deep Dive: Wallet Design, Security & AI Agent Interaction
+
+> **TL;DR video:** (https://drive.google.com/file/d/1wIN0c030A5PbF8dX_f3V-UoD1pPmMLFd/view?usp=sharing)
+
+---
+
+### Wallet Design
+
+Every agent wallet in Bazar is **ephemeral by design**. There is no seed phrase, no hardware wallet, no human-managed key. The wallet is born at registration and its private key never lives outside of two places: encrypted ciphertext in Supabase, and RAM during a signing window.
+
+**Key generation** (`bazar-backend/server.ts:250`)
+
+```ts
+const keypair = Keypair.generate();
+```
+
+`@solana/web3.js` uses the `tweetnacl` Ed25519 implementation under the hood — 32 bytes of entropy from the OS `crypto` module become a keypair. The public key becomes the wallet address. The private key (64 bytes as a Uint8Array) is immediately encrypted and the plaintext is discarded.
+
+**Encryption at rest** (`bazar-backend/server.ts:19–30`)
+
+The ciphertext stored in Supabase has the form `iv:authTag:encryptedData`, all hex-encoded. The encryption key is derived from a per-agent `encryptionSecret` via SHA-256, so even if two agents share the same secret string by coincidence, the stored blobs look completely different because each gets a fresh random IV.
+
+```
+[16-byte random IV] : [16-byte GCM auth tag] : [64-byte encrypted private key]
+```
+
+The auth tag is what makes AES-GCM non-malleable — any bit flip in the ciphertext causes decryption to throw before any plaintext is produced. This means a tampered key in Supabase can never yield a valid-but-wrong keypair; it fails loudly and immediately.
+
+**Key lifecycle**
+
+```
+Registration      → key generated → encrypted → stored → plaintext dropped
+Signing window    → ciphertext fetched → decrypted in RAM → keypair created → tx signed
+Post-signing      → local variable goes out of scope → GC cleans up
+```
+
+The plaintext key has no persistent identity. It does not live in a class property, a global, a log line, or a file. The moment the signing call returns, it is unreachable.
+
+**Associated Token Accounts (ATAs)**
+
+For SPL token operations (e.g., receiving USDC from a Jupiter swap), Jupiter automatically creates or reuses the agent's ATA. The ATA address is deterministically derived from the wallet address + mint address, so there is nothing to generate or store — it exists on-chain or it will be created by the protocol as part of the swap transaction.
+
+---
+
+### Security Considerations
+
+**Threat model**
+
+The core adversary Bazar defends against is a compromised or misbehaving AI agent — one that has been prompt-injected, fine-tuned to misbehave, or is simply buggy. The assumption is that agent code is untrusted. The SDK and backend are the trust boundary.
+
+| Layer | What it protects against |
+|---|---|
+| Policy engine (pre-sign validation) | Agent calling wrong programs, exceeding SOL caps, violating rate limits |
+| AES-256-GCM with auth tag | Key tampering, bit-flip attacks on stored ciphertext |
+| Per-agent `encryptionSecret` | Supabase breach — stolen ciphertext is useless without the secret |
+| Row Level Security (Supabase) | One agent reading another agent's key or policy |
+| No Supabase creds in agents | Agent code compromise cannot escalate to database access |
+| Backend as sole key holder | Signing requires a live round-trip to the backend — no offline key use |
+| In-memory only signing | No key persistence means no key theft from disk or swap files |
+| Default policy fallback | Missing/corrupted policy → conservative hardcoded limits, never permissionless |
+
+**What is intentionally NOT in scope**
+
+- **RPC-level security:** The backend trusts its configured RPC. A malicious RPC could return wrong account state, but this is a Solana-wide assumption shared by every wallet.
+- **Backend host compromise:** If the process running `bazar-backend` is fully compromised, the attacker could intercept keys during the decryption window. Mitigation would require HSM or TEE integration, which is outside scope for this implementation.
+- **Key rotation:** There is no automated key rotation. A future production version would periodically re-generate keypairs and migrate funds.
+
+**Rate limiting and transaction caps**
+
+Every policy enforces two independent limits:
+
+1. **`max_transaction_amount`** — checked against the transfer value or swap input. A single transaction exceeding this is rejected before signing, regardless of how many times the agent retries.
+2. **`max_transactions_per_minute`** — a sliding window enforced inside `policyEngine.ts`. Even if an agent enters a retry loop, it cannot exceed the configured throughput.
+
+These two limits together bound the worst-case financial damage from a runaway agent: `max_tx_amount × max_tx_per_min × time_window`.
+
+**Program whitelist as the last line of defense**
+
+Jupiter's `VersionedTransaction` is opaque to the agent — the agent calls `executeJupiterSwap()` and trusts that Jupiter returns a valid transaction. But Jupiter could theoretically include unexpected programs (new AMM integrations, protocol upgrades, or a compromised API response). The program ID extraction loop in `jupiterSwap.ts:extractProgramIds()` catches all of these:
+
+```ts
+for (const ix of tx.message.compiledInstructions) {
+    const programId = staticAccountKeys[ix.programIdIndex];
+    programIds.add(programId.toBase58());
+}
+```
+
+This runs on the fully-assembled transaction — not on the agent's intent, but on the actual bytes that would be signed. Any program that wasn't explicitly whitelisted at policy creation time causes an immediate hard stop.
+
+---
+
+### How Bazar Wallets Interact With AI Agents
+
+The design philosophy is **capability without autonomy**. The agent has full decision-making power over *what* to attempt — but the wallet infrastructure controls whether that attempt can actually execute.
+
+**The interface contract**
+
+The SDK exposes three methods to agents (`walletClient.ts`):
+
+```ts
+wallet.sendSol(recipient, lamports)         // SOL transfer
+wallet.executeJupiterSwap(in, out, amount)  // DEX swap
+wallet.getBalance()                         // read-only account state
+```
+
+That's the entire surface area. There is no `wallet.signArbitraryTransaction()`, no `wallet.getPrivateKey()`, no bypass hatch. The agent can express an intent within this vocabulary, but cannot operate outside it.
+
+**Policy as the agent's constitution**
+
+When a developer deploys an agent, they assign it a policy. The policy is not advisory — it is enforced by the SDK before every operation. The agent cannot read, modify, or override its own policy. From the agent's perspective, the policy is invisible; it simply finds that certain operations succeed and others throw.
+
+This maps cleanly onto how real-world AI agents should be constrained. The agent's "intelligence" (its decision logic, its LLM calls, its strategy) lives in `agents-demo/`. The wallet's "authority" is entirely defined by what the policy permits.
+
+**The agentic execution loop**
+
+In a production AI agent system using Bazar, the loop looks like this:
+
+```
+[LLM / Agent Logic]
+      │
+      │  "I want to swap 0.01 SOL for USDC"
+      ▼
+[wallet.executeJupiterSwap()]
+      │
+      ├─ resolvePolicy()       ← backend round-trip, policy fetched fresh
+      ├─ getJupiterQuote()     ← current market price
+      ├─ loadDecryptedWallet() ← key fetched and decrypted
+      ├─ buildTransaction()    ← Jupiter assembles the tx
+      ├─ validateInstructions() ← EVERY program checked against whitelist
+      └─ sign + broadcast      ← only if all checks pass
+```
+
+Each step is a gate. The agent's decision only becomes a transaction if it survives all five checks in sequence. If any check fails, the agent gets an exception — not a signed transaction, not a partial execution, not a silent failure.
+
+**SKILLS.md as the agent's knowledge base**
+
+`agentic-wallet-sdk/SKILLS.md` is a structured document designed to be injected into an LLM's context or embedded in an agent's system prompt. It describes exactly what the wallet can do, what arguments each method expects, and which programs must be whitelisted for each capability. An AI agent reading this file knows precisely how to interact with Bazar without hallucinating capabilities that don't exist.
+
+This is the interface between the AI layer and the wallet layer: a machine-readable contract that bounds what the agent knows it can ask for.
 
 ---
 
