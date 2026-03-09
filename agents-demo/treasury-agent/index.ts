@@ -37,12 +37,16 @@ async function ensureRegistered(): Promise<{ agentId: string; encryptionSecret: 
     console.log(`[AUTO-REGISTER] Wallet: ${data.walletAddress}`);
     console.log(`[AUTO-REGISTER] Policy: ${data.policyName}`);
 
-    // Write credentials back to .env
-    let envContent = fs.readFileSync(ENV_PATH, 'utf-8');
-    envContent = envContent.replace(/^AGENT_ID=.*$/m, `AGENT_ID="${data.agentId}"`);
-    envContent = envContent.replace(/^ENCRYPTION_SECRET=.*$/m, `ENCRYPTION_SECRET="${data.encryptionSecret}"`);
-    envContent = envContent.replace(/^WALLET_ADDRESS=.*$/m, `WALLET_ADDRESS="${data.walletAddress}"`);
-    fs.writeFileSync(ENV_PATH, envContent, 'utf-8');
+    // Write credentials to .env (create from scratch if missing)
+    const envLines = [
+        `AGENT_ID="${data.agentId}"`,
+        `ENCRYPTION_SECRET="${data.encryptionSecret}"`,
+        `WALLET_ADDRESS="${data.walletAddress}"`,
+        `BAZAR_BACKEND_URL="${BACKEND_URL}"`,
+        `RPC_URL="${process.env.RPC_URL || 'https://api.devnet.solana.com'}"`,
+        `RPC_URL_FALLBACK="${process.env.RPC_URL_FALLBACK || ''}"`,
+    ];
+    fs.writeFileSync(ENV_PATH, envLines.join('\n') + '\n', 'utf-8');
 
     console.log(`[AUTO-REGISTER] Credentials saved to .env\n`);
 

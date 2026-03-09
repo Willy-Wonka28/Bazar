@@ -33,9 +33,9 @@ export class SecureKeyStore {
         let encrypted = cipher.update(plaintextKey, 'utf8', 'base64');
         encrypted += cipher.final('base64');
         const authTag = cipher.getAuthTag().toString('base64');
-        const ivHex = iv.toString('base64');
+        const ivB64 = iv.toString('base64');
 
-        return `${ivHex}:${authTag}:${encrypted}`;
+        return `${ivB64}:${authTag}:${encrypted}`;
     }
 
     /**

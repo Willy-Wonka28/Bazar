@@ -30,7 +30,7 @@ export class AgentRegistry {
     /**
      * Initializes the Agent Registry with a connection to the Supabase backend.
      * @param supabaseUrl The external URL of the Supabase project.
-     * @param supabaseKey The Anon public Role key.
+     * @param supabaseKey The Supabase API key (service_role or anon depending on context).
      */
     constructor(supabaseUrl: string, supabaseKey: string) {
         this.supabase = createClient(supabaseUrl, supabaseKey);

@@ -8,7 +8,7 @@ import {
     getJupiterSwapTransaction,
     extractProgramIds,
     JupiterQuote,
-    DEVNET_MINTS,
+    MAINNET_MINTS,
 } from './jupiterSwap';
 
 /**
@@ -16,8 +16,8 @@ import {
  */
 export interface WalletClientConfig {
     agentId: string;
-    rpcUrl: string; // e.g., https://api.devnet.solana.com
-    rpcUrlFallback?: string; // e.g., Alchemy Devnet endpoint
+    rpcUrl: string; // e.g., https://api.mainnet-beta.solana.com or https://api.devnet.solana.com
+    rpcUrlFallback?: string; // e.g., Alchemy fallback endpoint
     backendUrl: string; // Bazar Backend URL (e.g., https://bazar-backend.up.railway.app)
     encryptionSecret: string;
 }
@@ -47,7 +47,7 @@ export class WalletClient {
     }
 
     /**
-     * Bootstraps the agent by verifying connectivity.
+     * Bootstraps the agent and logs SDK initialization.
      * Must be called before any execution.
      */
     public async initialize(): Promise<void> {
@@ -174,11 +174,11 @@ export class WalletClient {
     }
 
     /**
-     * Executes a Jupiter DEX swap on Devnet.
+     * Executes a Jupiter DEX swap on Mainnet.
      * Fetches a quote, validates all program IDs in the returned transaction
      * against the agent's policy, signs, and broadcasts.
      *
-     * @param inputMint  Input token mint (use DEVNET_MINTS.SOL / DEVNET_MINTS.USDC).
+     * @param inputMint  Input token mint (use MAINNET_MINTS.SOL / MAINNET_MINTS.USDC).
      * @param outputMint Output token mint.
      * @param amountLamports Amount in the smallest unit of the input token.
      * @param slippageBps Slippage tolerance in basis points (default: 50 = 0.5%).

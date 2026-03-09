@@ -1,4 +1,4 @@
-import { WalletClient, DEVNET_MINTS } from 'agentic-wallet-sdk';
+import { WalletClient, MAINNET_MINTS } from 'agentic-wallet-sdk';
 import * as fs from 'fs';
 import * as path from 'path';
 import 'dotenv/config';
@@ -10,10 +10,7 @@ import 'dotenv/config';
 // writes its credentials to .env, then executes a Jupiter swap.
 // On subsequent boots, it reads existing credentials from .env.
 //
-// Swap direction alternates each run:
-//   Even runs  → SOL  → USDC  (0.01 SOL)
-//   Odd runs   → USDC → SOL   (all USDC balance)
-// On first boot we always go SOL → USDC to establish a USDC balance.
+// Each run swaps SOL → USDC (0.01 SOL) via Jupiter on Mainnet.
 
 const BACKEND_URL = process.env.BAZAR_BACKEND_URL || 'http://localhost:4000';
 const ENV_PATH = path.resolve(__dirname, '.env');
@@ -45,12 +42,16 @@ async function ensureRegistered(): Promise<{ agentId: string; encryptionSecret: 
     console.log(`[AUTO-REGISTER] Wallet:            ${data.walletAddress}`);
     console.log(`[AUTO-REGISTER] Policy:            ${data.policyName}`);
 
-    // Write credentials back to .env
-    let envContent = fs.readFileSync(ENV_PATH, 'utf-8');
-    envContent = envContent.replace(/^AGENT_ID=.*$/m, `AGENT_ID="${data.agentId}"`);
-    envContent = envContent.replace(/^ENCRYPTION_SECRET=.*$/m, `ENCRYPTION_SECRET="${data.encryptionSecret}"`);
-    envContent = envContent.replace(/^WALLET_ADDRESS=.*$/m, `WALLET_ADDRESS="${data.walletAddress}"`);
-    fs.writeFileSync(ENV_PATH, envContent, 'utf-8');
+    // Write credentials to .env (create from scratch if missing)
+    const envLines = [
+        `AGENT_ID="${data.agentId}"`,
+        `ENCRYPTION_SECRET="${data.encryptionSecret}"`,
+        `WALLET_ADDRESS="${data.walletAddress}"`,
+        `BAZAR_BACKEND_URL="${BACKEND_URL}"`,
+        `RPC_URL="${process.env.RPC_URL || 'https://api.mainnet-beta.solana.com'}"`,
+        `RPC_URL_FALLBACK="${process.env.RPC_URL_FALLBACK || ''}"`,
+    ];
+    fs.writeFileSync(ENV_PATH, envLines.join('\n') + '\n', 'utf-8');
 
     console.log(`[AUTO-REGISTER] Credentials saved to .env\n`);
 
@@ -66,7 +67,7 @@ async function main() {
 
     const wallet = new WalletClient({
         agentId,
-        rpcUrl: process.env.RPC_URL || 'https://api.devnet.solana.com',
+        rpcUrl: process.env.RPC_URL || 'https://api.mainnet-beta.solana.com',
         rpcUrlFallback: process.env.RPC_URL_FALLBACK,
         backendUrl: BACKEND_URL,
         encryptionSecret,
@@ -86,24 +87,24 @@ async function main() {
         }
 
         // ----------------------------------------------------------
-        // AI DECISION: Swap SOL → USDC via Jupiter on Devnet
+        // AI DECISION: Swap SOL → USDC via Jupiter on Mainnet
         // ----------------------------------------------------------
         console.log('AI Decision: Swapping 0.01 SOL → USDC via Jupiter DEX.');
         console.log(`Input:  0.01 SOL  (${SWAP_AMOUNT_LAMPORTS} lamports)`);
-        console.log(`Output: USDC  (${DEVNET_MINTS.USDC})`);
+        console.log(`Output: USDC  (${MAINNET_MINTS.USDC})`);
         console.log('Fetching best route from Jupiter...\n');
 
         const signature = await wallet.executeJupiterSwap(
-            DEVNET_MINTS.SOL,
-            DEVNET_MINTS.USDC,
+            MAINNET_MINTS.SOL,
+            MAINNET_MINTS.USDC,
             SWAP_AMOUNT_LAMPORTS
         );
 
         console.log('\n' + '='.repeat(55));
         console.log('  ✅ SWAP CONFIRMED');
         console.log('='.repeat(55));
-        console.log(`  Devnet Signature: ${signature}`);
-        console.log(`  Explorer: https://explorer.solana.com/tx/${signature}?cluster=devnet`);
+        console.log(`  Signature: ${signature}`);
+        console.log(`  Explorer: https://explorer.solana.com/tx/${signature}`);
         console.log('='.repeat(55) + '\n');
 
     } catch (error: any) {

@@ -119,11 +119,17 @@ async function main() {
         console.log(chalk.white(`  AGENT_ID="${result.agentId}"`));
         console.log(chalk.white(`  ENCRYPTION_SECRET="${result.encryptionSecret}"`));
         console.log(chalk.white(`  BAZAR_BACKEND_URL="${BACKEND_URL}"`));
-        console.log(chalk.white(`  RPC_URL="https://api.devnet.solana.com"`));
-        console.log(chalk.white(`  RPC_URL_FALLBACK="https://solana-devnet.g.alchemy.com/v2/RJ3djVqdsC3rT3OWJopz_"`));
+        const isMainnet = selectedRole.role === 'trader';
+        const rpcUrl = isMainnet ? 'https://api.mainnet-beta.solana.com' : 'https://api.devnet.solana.com';
+        console.log(chalk.white(`  RPC_URL="${rpcUrl}"`));
+        console.log(chalk.white(`  RPC_URL_FALLBACK=""`));
 
         console.log('\n' + chalk.gray('  Fund your wallet:'));
-        console.log(chalk.white(`  solana airdrop 2 ${result.walletAddress} --url devnet\n`));
+        if (isMainnet) {
+            console.log(chalk.white(`  Send at least 0.02 SOL (Mainnet) to ${result.walletAddress}\n`));
+        } else {
+            console.log(chalk.white(`  solana airdrop 2 ${result.walletAddress} --url devnet\n`));
+        }
 
     } catch (err: any) {
         console.error(chalk.red(`\n  Registration failed: ${err.message}`));

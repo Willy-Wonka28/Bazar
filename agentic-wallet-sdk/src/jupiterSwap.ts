@@ -3,10 +3,11 @@ import { PublicKey, VersionedTransaction } from '@solana/web3.js';
 // ============================================================
 // Token mint addresses (Mainnet) — Jupiter API is mainnet-only
 // ============================================================
-export const DEVNET_MINTS = {
+export const MAINNET_MINTS = {
     SOL:  'So11111111111111111111111111111111111111112',  // Wrapped SOL (same on all networks)
     USDC: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', // Circle USDC (mainnet)
 };
+
 
 export const JUPITER_API = 'https://lite-api.jup.ag/swap/v1';
 
@@ -28,7 +29,7 @@ export interface JupiterQuote {
 /**
  * Fetches the best swap quote from Jupiter for a given input/output mint pair.
  * @param inputMint  Input token mint address (e.g., Wrapped SOL).
- * @param outputMint Output token mint address (e.g., Devnet USDC).
+ * @param outputMint Output token mint address (e.g., Mainnet USDC).
  * @param amountLamports Amount in the smallest unit of the input token (lamports for SOL).
  * @param slippageBps Slippage tolerance in basis points (default: 50 = 0.5%).
  */

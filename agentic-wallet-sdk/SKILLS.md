@@ -104,21 +104,21 @@ To use this skill, your agent must be registered with the `trader` role (`DeFi T
 
 ### Example — Swap 0.01 SOL → USDC
 ```typescript
-import { WalletClient, DEVNET_MINTS } from 'agentic-wallet-sdk';
+import { WalletClient, MAINNET_MINTS } from 'agentic-wallet-sdk';
 
 const signature = await wallet.executeJupiterSwap(
-    DEVNET_MINTS.SOL,   // So11111111111111111111111111111111111111112
-    DEVNET_MINTS.USDC,  // EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v
+    MAINNET_MINTS.SOL,   // So11111111111111111111111111111111111111112
+    MAINNET_MINTS.USDC,  // EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v
     10_000_000          // 0.01 SOL in lamports
 );
 console.log("Swap confirmed:", signature);
 ```
 
-### Available Mints (`DEVNET_MINTS`)
+### Available Mints (`MAINNET_MINTS`)
 | Constant | Mint Address |
 |---|---|
-| `DEVNET_MINTS.SOL` | `So11111111111111111111111111111111111111112` |
-| `DEVNET_MINTS.USDC` | `EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v` |
+| `MAINNET_MINTS.SOL` | `So11111111111111111111111111111111111111112` |
+| `MAINNET_MINTS.USDC` | `EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v` |
 
 ### DeFi Trader Policy — Required Whitelisted Programs
 | Program | Address |

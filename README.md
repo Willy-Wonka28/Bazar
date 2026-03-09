@@ -212,8 +212,8 @@ The agent scripts contain the "AI brain" — the decision about what to do. The 
 // The AI decides: swap 0.01 SOL → USDC via Jupiter
 console.log('AI Decision: Swapping 0.01 SOL → USDC via Jupiter DEX.');
 const signature = await wallet.executeJupiterSwap(
-    DEVNET_MINTS.SOL,
-    DEVNET_MINTS.USDC,
+    MAINNET_MINTS.SOL,
+    MAINNET_MINTS.USDC,
     SWAP_AMOUNT_LAMPORTS
 );
 ```
