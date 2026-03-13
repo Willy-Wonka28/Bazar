@@ -59,7 +59,7 @@ On first boot the agent auto-registers and fills these in. You can also set them
 ```env
 AGENT_ID=""
 ENCRYPTION_SECRET=""
-BAZAR_BACKEND_URL="https://bazar-backend.up.railway.app"
+BAZAR_BACKEND_URL="https://bazar-y2v7.onrender.com"
 RPC_URL="https://api.mainnet-beta.solana.com"
 RPC_URL_FALLBACK="https://solana-mainnet.g.alchemy.com/v2/<your-key>"
 ```

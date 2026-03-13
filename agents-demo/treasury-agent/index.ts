@@ -136,7 +136,7 @@ async function main() {
         } else if (error.message.toLowerCase().includes('registration failed')) {
             console.error('  >> Agent registration with the Bazar Backend failed.');
             console.error('     Check that BAZAR_BACKEND_URL is reachable:');
-            console.error(`     ${process.env.BAZAR_BACKEND_URL || 'https://bazar-backend.up.railway.app'}`);
+            console.error(`     ${process.env.BAZAR_BACKEND_URL || 'https://bazar-y2v7.onrender.com'}`);
 
         } else {
             console.error('  >> Something unexpected went wrong.');

@@ -265,7 +265,7 @@ Documents all SDK capabilities in a format designed to be read by an AI agent: m
 
 ### ✅ Open-source, self-contained, fully deployable
 
-Backend is live at **https://bazar-backend.up.railway.app** — judges don't need to run it. The agents work out of the box by cloning the repo, installing dependencies, and running `npm start`.
+Backend is live at **https://bazar-y2v7.onrender.com** — judges don't need to run it. The agents work out of the box by cloning the repo, installing dependencies, and running `npm start`.
 
 ---
 
@@ -479,7 +479,7 @@ cd Bazar
 ```
 
 ### Step 1: Backend (Already Live)
-The Bazar Backend is deployed at **https://bazar-backend.up.railway.app** — no local setup needed.
+The Bazar Backend is deployed at **https://bazar-y2v7.onrender.com** — no local setup needed.
 
 ### Step 2: Build the SDK
 ```bash
@@ -519,7 +519,7 @@ Open `http://localhost:3000`, click **Launch Sequence** on either agent tile, an
 |---|---|
 | `AGENT_ID` | UUID assigned at registration |
 | `ENCRYPTION_SECRET` | Per-agent AES-256-GCM passphrase |
-| `BAZAR_BACKEND_URL` | `https://bazar-backend.up.railway.app` |
+| `BAZAR_BACKEND_URL` | `https://bazar-y2v7.onrender.com` |
 | `RPC_URL` | Mainnet for Trader, Devnet for Treasury |
 | `RPC_URL_FALLBACK` | Alchemy endpoint (auto-failover) |
 
